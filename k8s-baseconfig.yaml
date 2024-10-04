@@ -51,21 +51,18 @@
         name: net.ipv4.ip_forward
         value: '1'
         state: present
-        reload: yes
 
     - name: Forwarding for Bridge
       ansible.builtin.sysctl:
         name: net.bridge.bridge-nf-call-iptables
         value: '1'
         state: present
-        reload: yes
 
     - name: Forwarding for Bridge ipv6
       ansible.builtin.sysctl:
         name: net.bridge.bridge-nf-call-ip6tables
         value: '1'
         state: present
-        reload: yes
 
     - name: Activate UFW
       community.general.ufw:
