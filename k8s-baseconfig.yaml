@@ -1,0 +1,205 @@
+---
+- name: K8s Base-Setup
+  hosts: all
+  gather_facts: yes
+  become: yes
+
+  tasks:
+    - name: Test via ping
+      ansible.builtin.ping:
+
+    - name: Install dependencies
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - net-tools
+          - software-properties-common
+        state: present
+        update_cache: true
+
+    - name: Upgrade
+      ansible.builtin.apt:
+        upgrade: yes
+
+    - name: K8s User anlegen
+      ansible.builtin.user:
+        name: kubernetes
+        password: <<SECRET>>
+        shell: /bin/bash
+        append: true
+        groups: sudo
+
+    - name: Copy crio.conf
+      ansible.builtin.copy:
+        src: /home/ansible/projekt/crio.conf
+        dest: /etc/modules-load.d/
+
+    - name: Activate Module
+      ansible.builtin.modprobe:
+        name: overlay
+        state: present
+
+    - name: Activate Module
+      ansible.builtin.modprobe:
+        name: br_netfilter
+        state: present
+
+    - name: Forwarding
+      ansible.builtin.sysctl:
+        name: net.ipv4.ip_forward
+        value: '1'
+        state: present
+        reload: yes
+
+    - name: Forwarding for Bridge
+      ansible.builtin.sysctl:
+        name: net.bridge.bridge-nf-call-iptables
+        value: '1'
+        state: present
+        reload: yes
+
+    - name: Forwarding for Bridge ipv6
+      ansible.builtin.sysctl:
+        name: net.bridge.bridge-nf-call-ip6tables
+        value: '1'
+        state: present
+        reload: yes
+
+    - name: Activate UFW
+      community.general.ufw:
+        state: enabled
+
+    - name: Allow from RFC1918
+      community.general.ufw:
+        rule: allow
+        src: '{{ item }}'
+      loop:
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+
+    - name: Allow SSH
+      community.general.ufw:
+        rule: allow
+        proto: tcp
+        port: 22
+
+    - name: Allow Calico Ports TCP
+      community.general.ufw:
+        rule: allow
+        proto: tcp
+        port: '{{ item }}'
+      loop:
+        - 179
+        - 2379
+        - 4789
+
+    - name: Allow Calico Ports UDP
+      community.general.ufw:
+        rule: allow
+        proto: udp
+        port: 4789
+
+    - name: Allow K8s Masternode Ports
+      community.general.ufw:
+        rule: allow
+        proto: tcp
+        port: '{{ item }}'
+      loop:
+        - 2379
+        - 2380
+        - 6443
+        - 10250
+        - 10257
+        - 10259
+      when: inventory_hostname == 'Your_Controlnode_HERE'
+
+    - name: Allow K8s Workernode Ports
+      community.general.ufw:
+        rule: allow
+        proto: tcp
+        port: '{{ item }}'
+      loop:
+        - 10250
+        - 30000:32767
+      when: inventory_hostname != 'Your_Controlnode_HERE'
+
+    - name: Add K8s Key
+      ansible.builtin.shell: >
+        curl -fsSL 'https://pkgs.k8s.io/core:/stable:/v1.31/deb/Release.key' |
+        gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+    - name: Add K8s Repository
+      ansible.builtin.shell: >
+        echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.31/deb/ /" |
+        tee /etc/apt/sources.list.d/kubernetes.list
+
+    - name: Add Cri-O Key
+      ansible.builtin.shell: >
+        curl -L https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:1.28/xUbuntu_22.04/Release.key |
+        sudo apt-key --keyring /etc/apt/trusted.gpg.d/libcontainers.gpg add -
+
+    - name: Add Cri-O Key 2
+      ansible.builtin.shell: >
+        curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/xUbuntu_22.04/Release.key |
+        sudo apt-key --keyring /etc/apt/trusted.gpg.d/libcontainers.gpg add -
+
+    - name: Add Cri-O Repository
+      ansible.builtin.shell: >
+        echo "deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/xUbuntu_22.04/ /"|
+        sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+
+    - name: Add Cri-O Repository 2
+      ansible.builtin.shell: >
+        echo "deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/1.28/xUbuntu_22.04/ /"|
+        sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:1.28.list
+
+    - name: Apt Update
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Install Cri-O
+      ansible.builtin.apt:
+        name:
+          - cri-o
+          - cri-o-runc
+        state: present
+
+    - name: Start & Enable Cri-O
+      ansible.builtin.systemd_service:
+        name: crio
+        state: started
+        enabled: true
+        daemon_reload: true
+
+    - name: Install K8s Packages
+      ansible.builtin.apt:
+        name:
+            - kubelet
+            - kubectl
+            - kubeadm
+        state: present
+
+    - name: Hold K8s Packages
+      ansible.builtin.dpkg_selections:
+        name: '{{ item }}'
+        selection: hold
+      loop:
+        - kubeadm
+        - kubectl
+        - kubelet
+
+    - name: Start & Enable Kubelet
+      ansible.builtin.systemd_service:
+        name: kubelet
+        state: started
+        enabled: true
+
+    - name: Pull Images
+      ansible.builtin.command: sudo kubeadm config images pull
+
+    - name: Reboot
+      ansible.builtin.reboot:
+
