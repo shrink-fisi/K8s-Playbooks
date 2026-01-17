@@ -1,0 +1,38 @@
+---
+k8s_expected_os: Debian
+k8s_expected_os_major: "13"
+
+k8s_required_modules:
+  - overlay
+  - br_netfilter
+
+k8s_required_sysctls:
+  - name: net.ipv4.ip_forward
+    value: '1'
+  - name: net.bridge.bridge-nf-call-iptables
+    value: '1'
+  - name: net.bridge.bridge-nf-call-ip6tables
+    value: '1'
+
+k8s_required_control_plane_ports:
+  - 2379
+  - 2380
+  - 6443
+  - 10250
+  - 10257
+  - 10259
+
+k8s_required_worker_ports:
+  - 10250
+  - "30000:32767"
+
+k8s_preflight_control_plane_port_checks:
+  - 2379
+  - 2380
+  - 6443
+  - 10250
+  - 10257
+  - 10259
+
+k8s_preflight_worker_port_checks:
+  - 10250

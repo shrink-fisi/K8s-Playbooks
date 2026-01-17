@@ -7,6 +7,7 @@ This repository contains two Ansible playbooks that perform the following tasks:
 
     k8s-baseconfig.yaml: Prepares the Debian VMs for Kubernetes cluster setup using roles.
     k8s-kubeinstall.yaml: Initializes the Kubernetes cluster on the control node and joins the worker nodes using roles.
+    k8s-preflight.yaml: Runs preflight checks to validate the environment before changes.
 
 Prerequisites
 
@@ -25,6 +26,12 @@ Configuration
         k8s_user_password
 
 How to Use
+Step 0: Run Preflight Checks
+
+Run the preflight checks to validate OS, swap state, network interface, and port availability:
+
+	ansible-playbook -i hosts k8s-preflight.yaml
+
 Step 1: Configure Base Setup
 
 Run the k8s-baseconfig.yaml playbook to prepare the VMs:

@@ -1,0 +1,69 @@
+---
+- name: Verify inventory groups
+  ansible.builtin.assert:
+    that:
+      - groups.get(k8s_control_plane_group, []) | length > 0
+      - groups.get(k8s_worker_group, []) | length > 0
+    fail_msg: "Inventory must define non-empty {{ k8s_control_plane_group }} and {{ k8s_worker_group }} groups."
+
+- name: Verify control plane endpoint is set
+  ansible.builtin.assert:
+    that:
+      - k8s_control_plane_endpoint is defined
+      - k8s_control_plane_endpoint | length > 0
+      - k8s_control_plane_endpoint != 'CHANGE_ME'
+    fail_msg: "Set k8s_control_plane_endpoint in group_vars/all.yml."
+
+- name: Verify OS and version
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['distribution'] == k8s_expected_os
+      - ansible_facts['distribution_major_version'] == k8s_expected_os_major
+    fail_msg: "Expected {{ k8s_expected_os }} {{ k8s_expected_os_major }}."
+
+- name: Verify swap is disabled
+  ansible.builtin.command: swapon --noheadings --show
+  register: swap_status
+  changed_when: false
+
+- name: Assert swap is disabled
+  ansible.builtin.assert:
+    that:
+      - swap_status.stdout | trim == ''
+    fail_msg: "Disable swap before running the playbooks."
+
+- name: Verify network interface exists
+  ansible.builtin.command: "ip link show {{ k8s_node_interface }}"
+  changed_when: false
+
+- name: Verify kernel modules are available
+  ansible.builtin.command: "modprobe -n {{ item }}"
+  loop: "{{ k8s_required_modules }}"
+  changed_when: false
+
+- name: Verify control plane endpoint resolves
+  ansible.builtin.command: "getent hosts {{ k8s_control_plane_endpoint }}"
+  register: endpoint_lookup
+  changed_when: false
+  run_once: true
+
+- name: Check listening TCP ports
+  ansible.builtin.command: ss -lnt
+  register: listening_ports
+  changed_when: false
+
+- name: Ensure control plane ports are free
+  ansible.builtin.assert:
+    that:
+      - listening_ports.stdout is not search(':' ~ item ~ '\\s')
+    fail_msg: "Control plane port {{ item }} is already in use."
+  loop: "{{ k8s_preflight_control_plane_port_checks }}"
+  when: inventory_hostname in groups[k8s_control_plane_group]
+
+- name: Ensure worker ports are free
+  ansible.builtin.assert:
+    that:
+      - listening_ports.stdout is not search(':' ~ item ~ '\\s')
+    fail_msg: "Worker port {{ item }} is already in use."
+  loop: "{{ k8s_preflight_worker_port_checks }}"
+  when: inventory_hostname in groups[k8s_worker_group]

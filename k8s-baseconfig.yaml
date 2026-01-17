@@ -4,6 +4,7 @@
   gather_facts: yes
   become: yes
   roles:
+    - preflight
     - base
     - repos
     - crio
