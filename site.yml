@@ -1,0 +1,28 @@
+---
+- name: K8s Full Cluster Setup
+  hosts: all
+  gather_facts: yes
+  become: yes
+
+  roles:
+    - role: preflight
+      tags: [preflight]
+    - role: base
+      tags: [base]
+    - role: repos
+      tags: [repos]
+    - role: crio
+      tags: [crio]
+    - role: k8s_packages
+      tags: [k8s]
+
+- name: K8s Control Plane and Join
+  hosts: all
+  gather_facts: yes
+  become: yes
+
+  roles:
+    - role: kubeadm_init
+      tags: [kubeadm]
+    - role: kubeadm_join
+      tags: [kubeadm]

@@ -3,11 +3,12 @@ K8S-Playbooks
 A set of Ansible playbooks for automating the deployment of a Kubernetes cluster on four Debian 13 VMs. Designed for testing purposes, this project simplifies setting up a Kubernetes cluster with minimal manual intervention. Not production-ready.
 Playbooks
 
-This repository contains two Ansible playbooks that perform the following tasks:
+This repository contains playbooks that perform the following tasks:
 
     k8s-baseconfig.yaml: Prepares the Debian VMs for Kubernetes cluster setup using roles.
     k8s-kubeinstall.yaml: Initializes the Kubernetes cluster on the control node and joins the worker nodes using roles.
     k8s-preflight.yaml: Runs preflight checks to validate the environment before changes.
+    site.yml: Runs the full flow (preflight, base, repos, crio, kubeadm) with tags.
 
 Prerequisites
 
@@ -31,6 +32,11 @@ Step 0: Run Preflight Checks
 Run the preflight checks to validate OS, swap state, network interface, and port availability:
 
 	ansible-playbook -i hosts k8s-preflight.yaml
+
+Or run the full flow with tags:
+
+	ansible-playbook -i hosts site.yml
+	ansible-playbook -i hosts site.yml --tags preflight,base,repos,crio,kubeadm
 
 Step 1: Configure Base Setup
 
