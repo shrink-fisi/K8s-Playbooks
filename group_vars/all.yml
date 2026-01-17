@@ -1,0 +1,16 @@
+---
+k8s_user_name: kubernetes
+k8s_user_password: "{{ 'ChangeMe' | password_hash('sha512') }}"
+k8s_user_home: "/home/{{ k8s_user_name }}"
+
+k8s_control_plane_group: control_plane
+k8s_worker_group: workers
+k8s_control_plane_host: "{{ groups[k8s_control_plane_group][0] }}"
+
+k8s_control_plane_endpoint: "CHANGE_ME"
+k8s_pod_cidr: "192.168.0.0/16"
+k8s_node_interface: "eth0"
+k8s_cri_socket: "unix:///var/run/crio/crio.sock"
+
+k8s_calico_manifest_url: "https://raw.githubusercontent.com/projectcalico/calico/v3.26.4/manifests/calico.yaml"
+k8s_calico_manifest_path: "{{ k8s_user_home }}/calico.yaml"

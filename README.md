@@ -5,14 +5,24 @@ Playbooks
 
 This repository contains two Ansible playbooks that perform the following tasks:
 
-    k8s-baseconfig.yaml: Prepares the Debian VMs for Kubernetes cluster setup.
-    k8s-kubeinstall.yaml: Initializes the Kubernetes cluster on the control node and joins the worker nodes.
+    k8s-baseconfig.yaml: Prepares the Debian VMs for Kubernetes cluster setup using roles.
+    k8s-kubeinstall.yaml: Initializes the Kubernetes cluster on the control node and joins the worker nodes using roles.
 
 Prerequisites
 
     Four Debian 13 VMs, with access to SSH from your control machine.
     Ansible installed on the control machine.
     Ensure that your VMs have network connectivity with each other and the required ports are open.
+    An inventory with control-plane and worker groups.
+
+Configuration
+
+    Update variables in group_vars/all.yml before running:
+
+        k8s_control_plane_endpoint
+        k8s_pod_cidr
+        k8s_node_interface
+        k8s_user_password
 
 How to Use
 Step 1: Configure Base Setup
@@ -29,7 +39,7 @@ This playbook will:
     Load kernel module settings from crio.conf in this repo.
 
     Important:
-    You must manually replace the <<SECRET>> placeholder in the k8s-baseconfig.yaml playbook with a secure password for the kubernetes user before running it.
+    You must set k8s_user_password in group_vars/all.yml before running it.
 
 Step 2: Set Up Kubernetes Cluster
 
@@ -45,20 +55,23 @@ This playbook will:
     Generate a token to join the worker nodes to the cluster and apply it to the worker nodes.
 
     Important:
-    Several variables in the k8s-kubeinstall.yaml file need to be customized manually:
+    Several variables in group_vars/all.yml need to be customized manually:
 
-        ENDPOINT: Replace with the IP address or DNS name of your control plane (master node).
-        HOSTNAME: Replace with the hostname of your control plane (master node).
-        POD_CIDR: Replace with the desired Pod network CIDR range (e.g., 192.168.0.0/16).
-
-    Additionally, replace CHANGE_THIS in several places with appropriate values:
-
-        inventory_hostname == 'CHANGE_THIS' (control plane node hostname)
-        The network interface name for your VM when gathering IP info (ip -4 addr show 'CHANGE_THIS').
+        k8s_control_plane_endpoint: IP address or DNS name of your control plane.
+        k8s_pod_cidr: Desired Pod network CIDR range (e.g., 192.168.0.0/16).
+        k8s_node_interface: Network interface name used to show IP info (e.g., eth0).
 
 Inventory File
 
 Ensure that you have a correctly formatted hosts file that lists all your VM IPs or hostnames. For example:
+
+    [control_plane]
+    10.0.0.10
+
+    [workers]
+    10.0.0.11
+    10.0.0.12
+    10.0.0.13
 
 Post Setup
 
@@ -70,5 +83,5 @@ Once the playbooks have run successfully:
 Notes
 
     The playbooks are not production-ready and are intended for testing environments only.
-    Manual modification of the <<SECRET>> (in the base setup) and CHANGE_THIS placeholders (in the cluster setup) is required before running the playbooks.
+    Manual modification of values in group_vars/all.yml is required before running the playbooks.
     Ensure that the control node's hostname and endpoint match across both playbooks.

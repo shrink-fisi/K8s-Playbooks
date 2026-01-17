@@ -1,0 +1,36 @@
+---
+k8s_base_packages:
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - net-tools
+  - software-properties-common
+
+k8s_crio_conf_src: crio.conf
+
+k8s_rfc1918_sources:
+  - 10.0.0.0/8
+  - 172.16.0.0/12
+  - 192.168.0.0/16
+
+k8s_ssh_port: 22
+
+k8s_calico_ports_tcp:
+  - 179
+  - 2379
+  - 4789
+
+k8s_calico_ports_udp:
+  - 4789
+
+k8s_control_plane_ports:
+  - 2379
+  - 2380
+  - 6443
+  - 10250
+  - 10257
+  - 10259
+
+k8s_worker_ports:
+  - 10250
+  - "30000:32767"

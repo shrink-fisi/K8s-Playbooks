@@ -1,0 +1,9 @@
+---
+k8s_k8s_key_url: "https://pkgs.k8s.io/core:/stable:/v1.31/deb/Release.key"
+k8s_k8s_repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.31/deb/ /"
+
+k8s_libcontainers_key_url: "https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_13/Release.key"
+k8s_crio_key_url: "https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/1.28/Debian_13/Release.key"
+
+k8s_libcontainers_repo: "deb [signed-by=/etc/apt/keyrings/libcontainers-archive-keyring.gpg] https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_13/ /"
+k8s_crio_repo: "deb [signed-by=/etc/apt/keyrings/libcontainers-crio-archive-keyring.gpg] https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/1.28/Debian_13/ /"

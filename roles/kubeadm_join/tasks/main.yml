@@ -1,0 +1,11 @@
+---
+- name: Read cluster join command
+  ansible.builtin.shell: >
+    sudo kubeadm token create --print-join-command
+  register: global_join
+  delegate_to: "{{ k8s_control_plane_host }}"
+  run_once: true
+
+- name: Join workers to cluster
+  ansible.builtin.command: "{{ global_join.stdout }}"
+  when: inventory_hostname in groups[k8s_worker_group]

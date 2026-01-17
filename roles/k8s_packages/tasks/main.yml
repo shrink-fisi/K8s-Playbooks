@@ -1,0 +1,20 @@
+---
+- name: Install Kubernetes packages
+  ansible.builtin.apt:
+    name: "{{ k8s_kube_packages }}"
+    state: present
+
+- name: Hold Kubernetes packages
+  ansible.builtin.dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  loop: "{{ k8s_kube_packages }}"
+
+- name: Enable and start kubelet
+  ansible.builtin.systemd_service:
+    name: "{{ k8s_kubelet_service }}"
+    state: started
+    enabled: true
+
+- name: Pull Kubernetes images
+  ansible.builtin.command: sudo kubeadm config images pull

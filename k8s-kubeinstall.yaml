@@ -4,76 +4,7 @@
   gather_facts: true
   become: yes
 
-  vars:
-    - ENDPOINT: 'CHANGE_THIS'
-    - HOSTNAME: 'CHANGE_THIS'
-    - POD_CIDR: 'CHANGE_THIS'
-
-  tasks:
-    - name: Get hostname
-      ansible.builtin.command: hostname
-      register: hostname_node
-
-    - name: Get IP address
-      ansible.builtin.shell: >
-         ip -4 addr show 'CHANGE_THIS' | grep -oP '(?<=inet\s)\d+(\.\d+){3}'
-      register: ip_node
-
-    - name: Show hostname and IP
-      ansible.builtin.debug:
-        msg:
-          - "Hostname: {{ hostname_node.stdout  }}"
-          - "IP: {{ ip_node.stdout }}"
-
-    - name: Initialize control plane
-      ansible.builtin.command: sudo kubeadm init --control-plane-endpoint={{ ENDPOINT }} --apiserver-cert-extra-sans={{ ENDPOINT }} --pod-network-cidr={{ POD_CIDR }} --cri-socket unix:///var/run/crio/crio.sock --node-name {{ HOSTNAME }} --ignore-preflight-errors Swap
-      when: inventory_hostname == 'CHANGE_THIS'
-
-    - name: Create kubeconfig directory
-      ansible.builtin.file:
-        path: /home/kubernetes/.kube
-        state: directory
-        owner: kubernetes
-        group: kubernetes
-      when: inventory_hostname == 'CHANGE_THIS'
-
-    - name: Copy admin kubeconfig
-      ansible.builtin.command: sudo cp -i /etc/kubernetes/admin.conf /home/kubernetes/.kube/config
-      when: inventory_hostname == 'CHANGE_THIS'
-
-    - name: Set kubeconfig owner
-      ansible.builtin.shell: >
-         sudo chown kubernetes:kubernetes /home/kubernetes/.kube/config
-      when: inventory_hostname == 'CHANGE_THIS'
-
-    - name: Install additional packages
-      ansible.builtin.apt:
-        name:
-          - python3-pip
-          - python3-openshift
-          - python3-yaml
-          - python3-kubernetes
-
-    - name: Download Calico manifest
-      ansible.builtin.shell: >
-          curl https://raw.githubusercontent.com/projectcalico/calico/v3.26.4/manifests/calico.yaml -O
-      when: inventory_hostname == 'CHANGE_THIS'
-
-    - name: Apply Calico manifest
-      kubernetes.core.k8s:
-        src: "/home/kubernetes/calico.yaml"
-        state: present
-        apply: yes
-        kubeconfig: /home/kubernetes/.kube/config
-      when: inventory_hostname == 'CHANGE_THIS'
-
-    - name: Read cluster join command
-      ansible.builtin.shell: >
-          sudo kubeadm token create --print-join-command
-      register: global_join
-      delegate_to: 'CHANGE_THIS'
-
-    - name: Join workers to cluster
-      ansible.builtin.command: "{{ global_join.stdout }}"
-      when: inventory_hostname != 'CHANGE_THIS'
+  roles:
+    - kubeadm_init
+    - kubeadm_join
 

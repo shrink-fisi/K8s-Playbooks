@@ -1,0 +1,5 @@
+---
+k8s_crio_packages:
+  - cri-o
+  - cri-o-runc
+k8s_crio_service: crio

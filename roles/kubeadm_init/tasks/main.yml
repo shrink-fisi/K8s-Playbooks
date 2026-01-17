@@ -1,0 +1,66 @@
+---
+- name: Get hostname
+  ansible.builtin.command: hostname
+  register: hostname_node
+  changed_when: false
+
+- name: Get IP address
+  ansible.builtin.shell: >
+    ip -4 addr show "{{ k8s_node_interface }}" | grep -oP '(?<=inet\s)\d+(\.\d+){3}'
+  register: ip_node
+  changed_when: false
+  when: inventory_hostname in groups[k8s_control_plane_group]
+
+- name: Show hostname and IP
+  ansible.builtin.debug:
+    msg:
+      - "Hostname: {{ hostname_node.stdout }}"
+      - "IP: {{ ip_node.stdout }}"
+  when: inventory_hostname in groups[k8s_control_plane_group]
+
+- name: Initialize control plane
+  ansible.builtin.command: >
+    sudo kubeadm init --control-plane-endpoint={{ k8s_control_plane_endpoint }}
+    --apiserver-cert-extra-sans={{ k8s_control_plane_endpoint }}
+    --pod-network-cidr={{ k8s_pod_cidr }}
+    --cri-socket {{ k8s_cri_socket }}
+    --node-name {{ k8s_control_plane_node_name }}
+    --ignore-preflight-errors Swap
+  when: inventory_hostname in groups[k8s_control_plane_group]
+
+- name: Create kubeconfig directory
+  ansible.builtin.file:
+    path: "{{ k8s_kubeconfig_dir }}"
+    state: directory
+    owner: "{{ k8s_user_name }}"
+    group: "{{ k8s_user_name }}"
+  when: inventory_hostname in groups[k8s_control_plane_group]
+
+- name: Copy admin kubeconfig
+  ansible.builtin.command: >
+    sudo cp -i /etc/kubernetes/admin.conf "{{ k8s_kubeconfig_path }}"
+  when: inventory_hostname in groups[k8s_control_plane_group]
+
+- name: Set kubeconfig owner
+  ansible.builtin.shell: >
+    sudo chown {{ k8s_user_name }}:{{ k8s_user_name }} "{{ k8s_kubeconfig_path }}"
+  when: inventory_hostname in groups[k8s_control_plane_group]
+
+- name: Install additional packages
+  ansible.builtin.apt:
+    name: "{{ k8s_extra_python_packages }}"
+    state: present
+  when: inventory_hostname in groups[k8s_control_plane_group]
+
+- name: Download Calico manifest
+  ansible.builtin.shell: >
+    curl "{{ k8s_calico_manifest_url }}" -o "{{ k8s_calico_manifest_path }}"
+  when: inventory_hostname in groups[k8s_control_plane_group]
+
+- name: Apply Calico manifest
+  kubernetes.core.k8s:
+    src: "{{ k8s_calico_manifest_path }}"
+    state: present
+    apply: yes
+    kubeconfig: "{{ k8s_kubeconfig_path }}"
+  when: inventory_hostname in groups[k8s_control_plane_group]

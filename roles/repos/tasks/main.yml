@@ -1,0 +1,40 @@
+---
+- name: Ensure apt keyrings directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: Add Kubernetes apt key
+  ansible.builtin.shell: >
+    curl -fsSL "{{ k8s_k8s_key_url }}" |
+    gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+- name: Add Kubernetes apt repository
+  ansible.builtin.shell: >
+    echo "{{ k8s_k8s_repo }}" |
+    tee /etc/apt/sources.list.d/kubernetes.list
+
+- name: Add libcontainers apt key
+  ansible.builtin.shell: >
+    curl -fsSL "{{ k8s_libcontainers_key_url }}" |
+    gpg --dearmor -o /etc/apt/keyrings/libcontainers-archive-keyring.gpg
+
+- name: Add CRI-O apt key
+  ansible.builtin.shell: >
+    curl -fsSL "{{ k8s_crio_key_url }}" |
+    gpg --dearmor -o /etc/apt/keyrings/libcontainers-crio-archive-keyring.gpg
+
+- name: Add libcontainers apt repository
+  ansible.builtin.shell: >
+    echo "{{ k8s_libcontainers_repo }}" |
+    sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+
+- name: Add CRI-O apt repository
+  ansible.builtin.shell: >
+    echo "{{ k8s_crio_repo }}" |
+    sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:1.28.list
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true

@@ -1,0 +1,6 @@
+---
+k8s_kube_packages:
+  - kubelet
+  - kubectl
+  - kubeadm
+k8s_kubelet_service: kubelet

@@ -1,0 +1,93 @@
+---
+- name: Ping hosts
+  ansible.builtin.ping:
+
+- name: Install dependencies
+  ansible.builtin.apt:
+    name: "{{ k8s_base_packages }}"
+    state: present
+    update_cache: true
+
+- name: Upgrade packages
+  ansible.builtin.apt:
+    upgrade: yes
+
+- name: Create K8s user
+  ansible.builtin.user:
+    name: "{{ k8s_user_name }}"
+    password: "{{ k8s_user_password }}"
+    shell: /bin/bash
+    append: true
+    groups: sudo
+
+- name: Copy crio.conf
+  ansible.builtin.copy:
+    src: "{{ k8s_crio_conf_src }}"
+    dest: /etc/modules-load.d/
+
+- name: Load kernel modules
+  ansible.builtin.modprobe:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - overlay
+    - br_netfilter
+
+- name: Enable sysctl settings
+  ansible.builtin.sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+  loop:
+    - name: net.ipv4.ip_forward
+      value: '1'
+    - name: net.bridge.bridge-nf-call-iptables
+      value: '1'
+    - name: net.bridge.bridge-nf-call-ip6tables
+      value: '1'
+
+- name: Enable UFW
+  community.general.ufw:
+    state: enabled
+
+- name: Allow RFC1918 networks
+  community.general.ufw:
+    rule: allow
+    src: "{{ item }}"
+  loop: "{{ k8s_rfc1918_sources }}"
+
+- name: Allow SSH
+  community.general.ufw:
+    rule: allow
+    proto: tcp
+    port: "{{ k8s_ssh_port }}"
+
+- name: Allow Calico ports (TCP)
+  community.general.ufw:
+    rule: allow
+    proto: tcp
+    port: "{{ item }}"
+  loop: "{{ k8s_calico_ports_tcp }}"
+
+- name: Allow Calico ports (UDP)
+  community.general.ufw:
+    rule: allow
+    proto: udp
+    port: "{{ item }}"
+  loop: "{{ k8s_calico_ports_udp }}"
+
+- name: Allow K8s control plane ports
+  community.general.ufw:
+    rule: allow
+    proto: tcp
+    port: "{{ item }}"
+  loop: "{{ k8s_control_plane_ports }}"
+  when: inventory_hostname in groups[k8s_control_plane_group]
+
+- name: Allow K8s worker node ports
+  community.general.ufw:
+    rule: allow
+    proto: tcp
+    port: "{{ item }}"
+  loop: "{{ k8s_worker_ports }}"
+  when: inventory_hostname in groups[k8s_worker_group]
