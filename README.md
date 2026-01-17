@@ -1,16 +1,16 @@
 K8S-Playbooks
 
-A set of Ansible playbooks for automating the deployment of a Kubernetes cluster on four Ubuntu 24.04 VMs. Designed for testing purposes, this project simplifies setting up a Kubernetes cluster with minimal manual intervention. Not production-ready.
+A set of Ansible playbooks for automating the deployment of a Kubernetes cluster on four Debian 13 VMs. Designed for testing purposes, this project simplifies setting up a Kubernetes cluster with minimal manual intervention. Not production-ready.
 Playbooks
 
 This repository contains two Ansible playbooks that perform the following tasks:
 
-    k8s-baseconfig.yaml: Prepares the Ubuntu VMs for Kubernetes cluster setup.
+    k8s-baseconfig.yaml: Prepares the Debian VMs for Kubernetes cluster setup.
     k8s-kubeinstall.yaml: Initializes the Kubernetes cluster on the control node and joins the worker nodes.
 
 Prerequisites
 
-    Four Ubuntu 24.04 VMs, with access to SSH from your control machine.
+    Four Debian 13 VMs, with access to SSH from your control machine.
     Ansible installed on the control machine.
     Ensure that your VMs have network connectivity with each other and the required ports are open.
 
@@ -26,6 +26,7 @@ This playbook will:
     Install necessary dependencies.
     Set up networking and firewall rules.
     Install CRI-O and Kubernetes components (kubelet, kubectl, and kubeadm).
+    Load kernel module settings from crio.conf in this repo.
 
     Important:
     You must manually replace the <<SECRET>> placeholder in the k8s-baseconfig.yaml playbook with a secure password for the kubernetes user before running it.
@@ -70,4 +71,4 @@ Notes
 
     The playbooks are not production-ready and are intended for testing environments only.
     Manual modification of the <<SECRET>> (in the base setup) and CHANGE_THIS placeholders (in the cluster setup) is required before running the playbooks.
-    Ensure that the control node’s hostname and endpoint match across both playbooks.
+    Ensure that the control node's hostname and endpoint match across both playbooks.
